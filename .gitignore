@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Editor files
+.vscode/
+*.swp
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+
+# Byte-compiled / logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# pytest
+.cache/
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+
+# User data
+*.log

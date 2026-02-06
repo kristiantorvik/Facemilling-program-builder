@@ -1,0 +1,29 @@
+{
+    "position": {
+        "reference": "Table",
+        "x": 0.0,
+        "y": 0.0
+    },
+    "stock": {
+        "x_size": 100.0,
+        "y_size": 100.0,
+        "z_size": 50.0,
+        "finished_z_height": 10.0
+    },
+    "roughing": {
+        "tool_number": 1,
+        "strategy": 0,
+        "depth_of_cut": 5.0,
+        "leave_for_finishing": 1.0,
+        "width_of_cut": 20.0,
+        "rpm": 5000,
+        "feedrate": 1000
+    },
+    "finishing": {
+        "tool_number": 2,
+        "strategy": 0,
+        "width_of_cut": 20.0,
+        "rpm": 8000,
+        "feedrate": 1500
+    }
+}
