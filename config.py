@@ -26,7 +26,6 @@ DEFAULT_CONFIG = {
         "roughing": {
             "tool_number": 55,
             "tool_diameter": 63.0,
-            "strategy": 1,
             "depth_of_cut": 5.0,
             "leave_for_finishing": 1.0,
             "width_of_cut": 30.0,
@@ -36,14 +35,13 @@ DEFAULT_CONFIG = {
         "finishing": {
             "tool_number": 1,
             "tool_diameter": 80.0,
-            "strategy": 1,
             "width_of_cut": 53.0,
             "rpm": 4000,
             "feedrate": 3000
         }
     },
     "machine_settings": {
-        "table_reference_x": -2600.0,
+        "table_reference_x": -2600.0,   
         "table_reference_y": -1500.0,
         "table_reference_z": -1171.193,
         "clearance_height": 50.0,
@@ -51,7 +49,27 @@ DEFAULT_CONFIG = {
         "lead_in_length": 10.0,
         "output_path": ".",
         "corner_radius": 4.0,
-        "last_cut_overlap": 10.0
+        "last_cut_overlap": 10.0,
+        "program_name": "FACEMILLING",
+        "append_timestamp": True
+    },
+    "coolant_options": {
+        "Air": {
+            "on_code": 81,
+            "off_code": 82
+        },
+        "Internal air": {
+            "on_code": 79,
+            "off_code": 80
+        },
+        "Cold air": {
+            "on_code": 83,
+            "off_code": 84
+        },
+        "Oil Mist": {
+            "on_code": 8,
+            "off_code": 9
+        }
     }
 }
 

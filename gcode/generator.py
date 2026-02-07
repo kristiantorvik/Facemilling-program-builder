@@ -93,7 +93,11 @@ class GCodeGenerator:
             output += self._create_roughing_section(parameters, calculator)
         
         # Finishing operation
-        output += self._create_finishing_section(parameters, calculator)
+        if "leave_for_finishing" not in parameters["roughing"]:
+            raise ValueError("Missing 'leave_for_finishing' in roughing parameters")
+        leave = parameters["roughing"]["leave_for_finishing"]
+        if leave != 0:
+            output += self._create_finishing_section(parameters, calculator)
         
         return output
     
@@ -159,6 +163,7 @@ class GCodeGenerator:
             output += f"M{m_codes['off_code']} (Turn off {coolant_name})\n"
         
         output += "M5\n"
+        output += f"G49\n"
         output += "G28 G91 Z0\n"
         return output
     

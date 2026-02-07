@@ -5,13 +5,6 @@ Main UI window for FaceMilling application.
 import tkinter as tk
 from tkinter import ttk
 from typing import Dict, Any, Optional
-"""
-Main UI window for FaceMilling application.
-"""
-
-import tkinter as tk
-from tkinter import ttk
-from typing import Dict, Any, Optional
 from pathlib import Path
 import sys
 
@@ -27,6 +20,8 @@ from ui.illustrations import IllustrationWindow, ImageMapper
 from ui import statusbar
 from config import get_config_manager
 from gcode.generator import GCodeGenerator
+
+from version import __version__
 
 
 def get_asset_path(filename: str) -> Path:
@@ -173,9 +168,15 @@ class MainWindow:
         # Status bar (single-line feedback across bottom)
         status_frame = tk.Frame(self.root, bd=1, relief=tk.SUNKEN)
         status_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Left side: status message
         self.status_var = tk.StringVar(value="Ready")
         self.status_label = tk.Label(status_frame, textvariable=self.status_var, anchor="w", padx=6)
-        self.status_label.pack(fill=tk.X)
+        self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Right side: version label
+        version_label = tk.Label(status_frame, text=f"v{__version__}", anchor="e", padx=6, fg="gray")
+        version_label.pack(side=tk.RIGHT)
 
         # Register status label for global access via ui.statusbar
         try:
@@ -264,6 +265,7 @@ class MainWindow:
         
         # Leave for Finishing
         self.roughing_leave = self._create_aligned_input(frame, row, "Leave for Finishing:", "float", "1.0")
+        self.roughing_leave.bind("<KeyRelease>", lambda e: self._on_leave_for_finishing_change())
         row += 1
         
         # Width of Cut
@@ -386,6 +388,27 @@ class MainWindow:
             self.roughing_feedrate,
         ]
         for w in rough_widgets:
+            try:
+                w.config(state=tk.NORMAL if enabled else tk.DISABLED)
+            except Exception:
+                pass
+    
+    def _on_leave_for_finishing_change(self):
+        """Enable or disable finishing inputs based on Leave for Finishing value."""
+        try:
+            value = float(self.roughing_leave.get())
+        except Exception:
+            return  # Invalid input, don't change state
+        
+        enabled = value != 0
+        finish_widgets = [
+            self.finishing_tool,
+            self.finishing_diameter,
+            self.finishing_width,
+            self.finishing_rpm,
+            self.finishing_feedrate,
+        ]
+        for w in finish_widgets:
             try:
                 w.config(state=tk.NORMAL if enabled else tk.DISABLED)
             except Exception:
@@ -625,9 +648,15 @@ class MainWindow:
             setattr(generator, 'output_dir', out_dir)
             gcode_program = generator.generate_program(parameters)
             
-            # Save G-code to file
-            timestamp = __import__('datetime').datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"program_{timestamp}"
+            # Build filename from config
+            program_name = ms.get("program_name", "program")
+            append_timestamp = ms.get("append_timestamp", True)
+            
+            if append_timestamp:
+                timestamp = __import__('datetime').datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{program_name}_{timestamp}"
+            else:
+                filename = program_name
             
             if generator.save_program(gcode_program, filename):
                 statusbar.set_status(f"Program saved: {filename}", level='success', timeout_ms=10000)
