@@ -75,9 +75,9 @@ class GCodeGenerator:
             offset_y = table_y + position["y"]
             
             header += f"""(Setting G55 according to table offset)
-#5241 = {offset_x}
-#5242 = {offset_y}
-#5243 = {table_z}
+#5241 = {round(offset_x, 3)}
+#5242 = {round(offset_y, 3)}
+#5243 = {round(table_z, 3)}
 
 """
             # Initial refrence return
@@ -119,7 +119,7 @@ class GCodeGenerator:
         elif refrence == "G57":
             output += f"G57\n"
         
-        output += f"G5.1 Q1 R5\n" # Enable semi-precision contouring mode
+        output += f"G5.1 Q1 R3\n" # Enable semi-precision contouring mode
         output += f"G0 G90 B0 C0\n" # Initial ensure B & C axes are zeroed
         output += f"M32 (Clamp C)\nM34 (Clamp B)\n"
         output += f"M3 S{roughing['rpm']}\n"
@@ -150,7 +150,7 @@ class GCodeGenerator:
                         output += f"G0 X{point.x} Y{point.y}\n"
                         output += f"G1 Z{point.z} F{point.feed}\n" # Plunge to depth at plunge-feedrate
                     elif i == 1:
-                        output += f"G1 X{point.z} Y{point.y} F{point.feed}\n" # First move after plunge, ensure feedrate is set
+                        output += f"G1 X{point.x} Y{point.y} F{point.feed}\n" # First move after plunge, ensure feedrate is set
                     else:
                         if point.arc:
                             output += f"G2 X{point.x} Y{point.y} R{point.arc_radius}\n"
@@ -214,7 +214,7 @@ class GCodeGenerator:
                         output += f"G0 X{point.x} Y{point.y}\n"
                         output += f"G1 Z{point.z} F{point.feed}\n" # Plunge to depth at plunge-feedrate
                     elif i == 1:
-                        output += f"G1 X{point.z} Y{point.y} F{point.feed}\n" # First move after plunge, ensure feedrate is set
+                        output += f"G1 X{point.x} Y{point.y} F{point.feed}\n" # First move after plunge, ensure feedrate is set
                     else:
                         if point.arc:
                             # G2 is clockwise arc

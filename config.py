@@ -21,50 +21,51 @@ DEFAULT_CONFIG = {
             "x_size": 400.0,
             "y_size": 300.0,
             "z_size": 150.0,
-            "finished_z_height": 140.0
+            "finished_z_height": 140.0,
+            "stock_offset": 10.0
         },
         "roughing": {
             "tool_number": 55,
             "tool_diameter": 63.0,
-            "depth_of_cut": 5.0,
-            "leave_for_finishing": 1.0,
-            "width_of_cut": 30.0,
-            "rpm": 6500,
+            "depth_of_cut": 10.0,
+            "leave_for_finishing": 1.25,
+            "width_of_cut": 40.0,
+            "rpm": 8000,
             "feedrate": 7000
         },
         "finishing": {
             "tool_number": 1,
             "tool_diameter": 80.0,
             "width_of_cut": 53.0,
-            "rpm": 4000,
-            "feedrate": 3000
+            "rpm": 4500,
+            "feedrate": 3800
         }
     },
     "machine_settings": {
-        "table_reference_x": -2600.0,   
-        "table_reference_y": -1500.0,
+        "table_reference_x": -2550.3,   
+        "table_reference_y": -1440.4,
         "table_reference_z": -1171.193,
         "clearance_height": 50.0,
-        "plunge_feedrate": 500.0,
-        "lead_in_length": 10.0,
+        "plunge_feedrate": 5000.0,
+        "lead_in_length": 15.0,
         "output_path": ".",
-        "corner_radius": 4.0,
+        "corner_radius": 10.0,
         "last_cut_overlap": 10.0,
         "program_name": "FACEMILLING",
-        "append_timestamp": True
+        "append_timestamp": False
     },
     "coolant_options": {
         "Air": {
-            "on_code": 81,
-            "off_code": 82
+            "on_code": 80,
+            "off_code": 81
         },
         "Internal air": {
-            "on_code": 79,
-            "off_code": 80
+            "on_code": 70,
+            "off_code": 71
         },
         "Cold air": {
-            "on_code": 83,
-            "off_code": 84
+            "on_code": 78,
+            "off_code": 79
         },
         "Oil Mist": {
             "on_code": 8,
