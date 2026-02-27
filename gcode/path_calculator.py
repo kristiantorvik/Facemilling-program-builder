@@ -39,7 +39,7 @@ class SpiralPathCalculator:
         self.parameters = parameters
         # Sections are required and must be validated by the InputValidator
         self.stock = parameters["stock"]
-        self.roughing = parameters["roughing"]
+        self.roughing = parameters.get("roughing", {})
         self.finishing = parameters["finishing"]
         self.machine_settings = parameters["machine_settings"]
         self.position = parameters["position"]
@@ -97,7 +97,11 @@ class SpiralPathCalculator:
         else:
             leave = 0
             width_of_cut = params["width_of_cut"]
-            start_z = self.finished_z + (self.roughing["leave_for_finishing"] if not self.only_finish else 0)
+            # If only_finish, start from stock_z, otherwise from roughing leave amount
+            if self.only_finish:
+                start_z = self.stock_z
+            else:
+                start_z = self.finished_z + self.roughing.get("leave_for_finishing", 0)
             end_z = self.finished_z
             feedrate = params["feedrate"]
             plunge_feedrate = self.machine_settings["plunge_feedrate"]

@@ -12,18 +12,18 @@ class InputValidator:
     # Validation ranges
     CORNER_RADIUS_MIN = 1.0
     CORNER_RADIUS_MAX = 25.0
-    TOOL_DIAMETER_MIN = 5.0
+    TOOL_DIAMETER_MIN = 3.0
     TOOL_DIAMETER_MAX = 300.0
-    RPM_MIN = 800
+    RPM_MIN = 500
     RPM_MAX = 20000
     FEEDRATE_MIN = 100
     FEEDRATE_MAX = 15000
     plunge_feedrate_MIN = 100
     plunge_feedrate_MAX = 15000
     STOCK_SIZE_MIN = 50.0
-    STOCK_SIZE_MAX = 1000.0
+    STOCK_SIZE_MAX = 5000.0
     CLEARANCE_MIN = 5.0
-    CLEARANCE_MAX = 500.0
+    CLEARANCE_MAX = 1000.0
     DEPTH_CUT_MIN = 0.1
     DEPTH_CUT_MAX = 100.0
     
