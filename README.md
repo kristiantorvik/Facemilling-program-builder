@@ -39,7 +39,30 @@ Settings are stored in `config.json`:
 - **Defaults**: Default values for all input fields
 - **Machine Settings**: Machine-specific parameters (table reference, clearance height, plunge feedrate, output path)
 - **Coolant Options**: Custom coolant types with M-codes
+- **Cleaning Macros**: Named machine-cleaning macros selectable in the UI
 - **Program Naming**: Base name and timestamp options
+
+### Cleaning Macros
+
+Define a small set of self-cleaning machine macros that can be inserted to clear
+swarf buildup. Each entry maps a display name to a **single** G-code line:
+
+```json
+"cleaning_macros": {
+    "Clean spindle macro": "M98 P1004"
+}
+```
+
+In the UI, two independent radio groups select between **None** and the defined
+macros:
+
+- **Between toolchange**: inserted at the roughing → finishing toolchange (after
+  the `M1` optional stop, before the `M06`). Only emitted when both a roughing
+  and a finishing operation are generated; otherwise the group is disabled.
+- **On program end**: inserted after the return-home moves, before `M30`.
+
+Both default to **None** (nothing inserted). A selected macro whose line is empty
+or spans multiple lines is rejected at validation, never written to the program.
 
 ### Example Config
 

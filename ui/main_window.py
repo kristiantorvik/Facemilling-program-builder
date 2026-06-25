@@ -24,6 +24,11 @@ from gcode.generator import GCodeGenerator
 from version import __version__
 
 
+# Radio value/label used for "no cleaning macro selected". Reserved: a config
+# macro named exactly this is treated as "None" (safe no-op), never emitted.
+CLEANING_MACRO_NONE = "None"
+
+
 def get_asset_path(filename: str) -> Path:
     """
     Get the full path to an asset file, supporting both dev and exe environments.
@@ -131,6 +136,7 @@ class MainWindow:
         self.create_stock_section(form_frame)
         self.create_roughing_section(form_frame)
         self.create_finishing_section(form_frame)
+        self.create_cleaning_macros_section(form_frame)
 
         # Create button frame at bottom of form
         button_frame = ttk.Frame(form_frame)
@@ -205,6 +211,50 @@ class MainWindow:
             if var.get():
                 selected_coolants[coolant_name] = coolant_options[coolant_name]
         return selected_coolants
+
+    def _get_selected_cleaning_macros(self) -> dict:
+        """Resolve the selected cleaning macros to {'name', 'line'} (or None).
+
+        A selected name is looked up strictly in config; a missing name raises
+        KeyError, surfaced as an error rather than emitting an unknown macro.
+        """
+        cleaning_macros = self.config_manager.get_section("cleaning_macros")
+
+        def resolve(selection_var: tk.StringVar):
+            name = selection_var.get()
+            if name == CLEANING_MACRO_NONE:
+                return None
+            line = cleaning_macros[name]  # Strict: KeyError if not in config
+            return {"name": name, "line": line}
+
+        return {
+            "toolchange": resolve(self.toolchange_macro_var),
+            "program_end": resolve(self.program_end_macro_var),
+        }
+
+    def _update_cleaning_macro_state(self) -> None:
+        """Enable the 'between toolchange' macro only when a roughing->finishing
+        toolchange will actually be generated (roughing present AND finishing
+        present). Makes the "skip when no toolchange" behavior visible, mirroring
+        the enable/disable used for the input fields.
+        """
+        buttons = getattr(self, "toolchange_macro_buttons", None)
+        if not buttons:
+            return
+
+        has_roughing = not self.only_finish_var.get()
+        try:
+            leave = float(self.roughing_leave.get())
+        except (ValueError, TypeError):
+            return  # Mid-edit/unparseable: leave state unchanged
+        has_finishing = leave != 0
+
+        state = tk.NORMAL if (has_roughing and has_finishing) else tk.DISABLED
+        for rb in buttons:
+            try:
+                rb.config(state=state)
+            except Exception:
+                pass
 
     def create_position_section(self, parent: tk.Widget) -> None:
         frame = tk.LabelFrame(parent, text="Position", font=("Arial", 11, "bold"), padx=8, pady=6)
@@ -338,7 +388,50 @@ class MainWindow:
         opts_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W, pady=4)
         self.only_finish_var = tk.BooleanVar(value=False)
         tk.Checkbutton(opts_frame, text="Only finish cut", variable=self.only_finish_var, command=self._on_only_finish_toggle).pack(side=tk.LEFT)
-    
+
+    def create_cleaning_macros_section(self, parent: tk.Widget) -> None:
+        """Create cleaning macro selection (between toolchange and on program end).
+
+        Two independent radio groups, each offering "None" plus the macros
+        defined in config (in their authored order). Default is "None" so no
+        macro is emitted unless explicitly selected.
+        """
+        frame = tk.LabelFrame(parent, text="Cleaning Macros", font=("Arial", 11, "bold"), padx=8, pady=6)
+        frame.pack(fill=tk.X, pady=6)
+        frame.columnconfigure(0, weight=0)
+        frame.columnconfigure(1, weight=1)
+
+        # Macro names exactly as defined in config (order preserved).
+        cleaning_macros = self.config_manager.get_section("cleaning_macros")
+        macro_names = list(cleaning_macros.keys())
+        options = [CLEANING_MACRO_NONE] + macro_names
+
+        # Selection state. Default "None" => nothing emitted.
+        self.toolchange_macro_var = tk.StringVar(value=CLEANING_MACRO_NONE)
+        self.program_end_macro_var = tk.StringVar(value=CLEANING_MACRO_NONE)
+
+        # References to the "between toolchange" radios so they can be greyed
+        # out when no roughing->finishing toolchange will be generated.
+        self.toolchange_macro_buttons = []
+
+        # Row 0: between toolchange
+        tk.Label(frame, text="Between toolchange:", font=("Arial", 9), width=20, anchor="w").grid(
+            row=0, column=0, sticky=tk.W, padx=(0, 8), pady=2)
+        toolchange_frame = tk.Frame(frame)
+        toolchange_frame.grid(row=0, column=1, sticky=tk.W, pady=2)
+        for value in options:
+            rb = tk.Radiobutton(toolchange_frame, text=value, variable=self.toolchange_macro_var, value=value)
+            rb.pack(side=tk.LEFT, padx=5)
+            self.toolchange_macro_buttons.append(rb)
+
+        # Row 1: on program end
+        tk.Label(frame, text="On program end:", font=("Arial", 9), width=20, anchor="w").grid(
+            row=1, column=0, sticky=tk.W, padx=(0, 8), pady=2)
+        program_end_frame = tk.Frame(frame)
+        program_end_frame.grid(row=1, column=1, sticky=tk.W, pady=2)
+        for value in options:
+            tk.Radiobutton(program_end_frame, text=value, variable=self.program_end_macro_var, value=value).pack(side=tk.LEFT, padx=5)
+
     def _on_field_focus(self, field_name: str):
         """
         Callback for field focus events.
@@ -392,7 +485,8 @@ class MainWindow:
                 w.config(state=tk.NORMAL if enabled else tk.DISABLED)
             except Exception:
                 pass
-    
+        self._update_cleaning_macro_state()
+
     def _on_leave_for_finishing_change(self):
         """Enable or disable finishing inputs based on Leave for Finishing value."""
         try:
@@ -413,6 +507,7 @@ class MainWindow:
                 w.config(state=tk.NORMAL if enabled else tk.DISABLED)
             except Exception:
                 pass
+        self._update_cleaning_macro_state()
     
     def display_illustration(self, field_name: str) -> None:
         """
@@ -519,9 +614,14 @@ class MainWindow:
         self.stock_offset.delete(0, tk.END)
         self.stock_offset.insert(0, str(stock_defaults.get("stock_offset", 0)))
 
+        # Cleaning macros: always reset to "None" (no macro emitted).
+        self.toolchange_macro_var.set(CLEANING_MACRO_NONE)
+        self.program_end_macro_var.set(CLEANING_MACRO_NONE)
+
         # Only finish cut default and apply initial enabled/disabled state
         self.only_finish_var.set(defaults.get("only_finish", False))
-        # Ensure roughing fields reflect the Only finish setting
+        # Ensure roughing fields (and the toolchange macro group) reflect the
+        # Only finish setting.
         try:
             self._on_only_finish_toggle()
         except Exception:
@@ -589,10 +689,11 @@ class MainWindow:
                 "feedrate": to_int(self.finishing_feedrate.get())
             },
             "coolant": self._get_selected_coolants(),
+            "cleaning_macros": self._get_selected_cleaning_macros(),
             "only_finish": self.only_finish_var.get(),
             "machine_settings": self.config_manager.get_section("machine_settings")
         }
-        
+
         return parameters
     
     def validate_parameters(self, parameters: Dict[str, Any]) -> tuple[bool, str]:

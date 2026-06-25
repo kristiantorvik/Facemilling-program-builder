@@ -43,8 +43,8 @@ class GCodeGenerator:
         # For now, build the program with structure
         gcode_output = self._create_header(parameters)
         gcode_output += self._create_program_body(parameters, calculator)
-        gcode_output += self._create_footer()
-        
+        gcode_output += self._create_footer(parameters)
+
         return gcode_output
     
     def _create_header(self, parameters: Dict[str, Any]) -> str:
@@ -175,6 +175,17 @@ class GCodeGenerator:
 
         output += "\nN2 (Finishing)\n"
         output += "M1\n"  # Optional stop for tool change
+
+        # Cleaning macro for the roughing -> finishing toolchange.
+        # Only emitted when a roughing tool actually precedes this change
+        # (i.e. not an "only finish" program); otherwise there is no
+        # toolchange to clean between and the selection is skipped.
+        if not parameters["only_finish"]:
+            toolchange_macro = parameters["cleaning_macros"]["toolchange"]
+            if toolchange_macro is not None:
+                output += f"({toolchange_macro['name']})\n"
+                output += f"{toolchange_macro['line']}\n"
+
         output += f"M06 T{finishing['tool_number']}\n"
         if refrence == "Table":
             output += f"G55\n"
@@ -231,14 +242,24 @@ class GCodeGenerator:
         output += "M5\n"
         return output
     
-    def _create_footer(self) -> str:
+    def _create_footer(self, parameters: Dict[str, Any]) -> str:
         """Create the footer section of the G-code program."""
-        footer = """\nG49
-G28 G91 Z0
-G28 G91 X0 Y0
-M30
-%
-"""
+        # Cleaning macro on program end, inserted after the machine has
+        # returned home and before M30 ends the program.
+        program_end_macro = parameters["cleaning_macros"]["program_end"]
+        if program_end_macro is not None:
+            macro_block = f"({program_end_macro['name']})\n{program_end_macro['line']}\n"
+        else:
+            macro_block = ""
+
+        footer = (
+            "\nG49\n"
+            "G28 G91 Z0\n"
+            "G28 G91 X0 Y0\n"
+            f"{macro_block}"
+            "M30\n"
+            "%\n"
+        )
         return footer
     
     def save_program(self, program: str, filename: str) -> bool:

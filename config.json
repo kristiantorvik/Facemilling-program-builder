@@ -59,5 +59,8 @@
             "on_code": 8,
             "off_code": 9
         }
+    },
+    "cleaning_macros": {
+        "Clean spindle macro": "M98 P1004"
     }
 }

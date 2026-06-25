@@ -39,7 +39,7 @@ class InputValidator:
             Tuple of (is_valid, error_message)
         """
         # Require top-level sections to be present
-        required_sections = ["position", "stock", "finishing", "machine_settings", "only_finish"]
+        required_sections = ["position", "stock", "finishing", "machine_settings", "only_finish", "cleaning_macros"]
         for sec in required_sections:
             if sec not in parameters:
                 return False, f"Missing top-level section: {sec}"
@@ -92,11 +92,16 @@ class InputValidator:
                 if not isinstance(off_code, int) or off_code < 0:
                     return False, f"Coolant '{coolant_name}' off_code must be a positive integer, got {off_code}"
         
+        # Validate cleaning macro selections (toolchange / program end)
+        is_valid, msg = InputValidator._validate_cleaning_macros(parameters["cleaning_macros"])
+        if not is_valid:
+            return is_valid, msg
+
         # Validate interdependencies
         is_valid, msg = InputValidator._validate_interdependencies(parameters)
         if not is_valid:
             return is_valid, msg
-        
+
         return True, ""
     
     @staticmethod
@@ -255,6 +260,41 @@ class InputValidator:
         
         return True, ""
     
+    @staticmethod
+    def _validate_cleaning_macros(macros: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate the selected cleaning macros.
+
+        Each slot ('toolchange', 'program_end') must be either None (no macro
+        selected) or a {'name', 'line'} dict whose 'line' is a single,
+        non-empty G-code line. Anything else is rejected so a malformed macro
+        can never reach the generated program.
+        """
+        if not isinstance(macros, dict):
+            return False, "Cleaning macros must be a dictionary of slot selections"
+
+        for slot in ("toolchange", "program_end"):
+            if slot not in macros:
+                return False, f"Cleaning macros missing '{slot}' selection"
+
+            selection = macros[slot]
+            if selection is None:
+                continue  # No macro selected for this slot
+
+            if not isinstance(selection, dict):
+                return False, f"Cleaning macro '{slot}' must be None or a {{name, line}} dictionary"
+
+            name = selection.get("name")
+            line = selection.get("line")
+
+            if not isinstance(name, str) or name.strip() == "":
+                return False, f"Cleaning macro '{slot}' has an invalid name"
+            if not isinstance(line, str) or line.strip() == "":
+                return False, f"Cleaning macro '{slot}' ({name}) has an empty G-code line"
+            if "\n" in line or "\r" in line:
+                return False, f"Cleaning macro '{slot}' ({name}) must be a single G-code line"
+
+        return True, ""
+
     @staticmethod
     def _validate_interdependencies(parameters: Dict[str, Any]) -> Tuple[bool, str]:
         """Validate interdependencies between sections."""
